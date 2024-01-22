@@ -79,7 +79,7 @@ namespace GameNetwork
 			availableRoomIds = new Stack<int>();
 			for (int i = maxRoomCount; i > 0; --i)
 			{
-				availableRoomIds.Push(i);
+				availableRoomIds.Push(100 + i);
 			}
 
 			// Create a stack of player Ids
@@ -110,7 +110,7 @@ namespace GameNetwork
 						clientList.Add(client);
 
 						// TODO - room number
-						Thread clientTh = new Thread(() => listenClient(123, client, id));
+						Thread clientTh = new Thread(() => listenClient(client, id));
 						clientThreads.Add(clientTh);
 						clientTh.Start();
 
@@ -129,12 +129,12 @@ namespace GameNetwork
 			}
 		}
 
-		private void listenClient(int roomId, TcpClient client, int clientId)
+		private void listenClient(TcpClient client, int clientId)
 		{
 			
 			GameDataBuilder builder = new GameDataBuilder();
-			ConnectionRequest request;
 			bool setupClient = true;
+			int roomId = 123;
 
 			// Buffer for reading data
 			Byte[] data = new Byte[256];
