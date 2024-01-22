@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using GameNetwork;
@@ -11,8 +9,9 @@ public class NetworkManager : MonoBehaviour
 	public Button connectBtn;
 	public TextMeshProUGUI infoText;
 
-	private Server gameServer;
-	private Client myClient;
+	private GameClient myClient;
+
+	private bool isMyTurn = false;
 
 	private string serverIp = "127.0.0.1";
 	private int serverPort = 13000;
@@ -20,7 +19,7 @@ public class NetworkManager : MonoBehaviour
 	// Start is called before the first frame update
 	void Start()
 	{
-		
+		myClient = new GameClient();
 	}
 
 	// Update is called once per frame
@@ -29,23 +28,47 @@ public class NetworkManager : MonoBehaviour
 
 	}
 
-	public void StartServer()
+	public void CreateRoom()
 	{
-		// Create the game server
-		gameServer = new Server();
+		//ConnectToGameServer();
 
-		infoText.text = "Server is starting";
-
-		gameServer.Start(serverIp, serverPort);
-
-		infoText.text = "Server is running.";
+		// TODO - Show the room number
 	}
 
-	public void ConnectToServer()
+	public void JoinRoom()
 	{
-		myClient = new Client();
+		// TODO - Show the input UI to enter Room number
 
-		myClient.Connect(serverIp, serverPort);
+		// ConnectToGameServer();
+	}
+
+	public void ConnectServer()
+	{
+		ConnectToGameServer();
+	}
+
+	private int ConnectToGameServer()
+	{
+		int clientId = -1;
+
+		// TODO - Check if connected before
+
+		infoText.text = "Connecting the server...";
+		int result = myClient.Connect(serverIp, serverPort);
+
+        if (result == 0)
+        {
+			clientId = myClient.GetClientId();
+			int roomId = myClient.GetRoomId();
+
+			infoText.text = clientId + " is connected. Waiting for friends in room: " + roomId;
+		}
+		else
+		{
+			infoText.text = "Cannot connect to server. Try Again.";
+		}
+
+		return clientId;
 	}
 
 
