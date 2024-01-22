@@ -280,8 +280,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7724e5a277d60441b36a63f550cf29d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  startServerBtn: {fileID: 0}
+  usernameField: {fileID: 0}
   connectBtn: {fileID: 0}
+  createRoomBtn: {fileID: 0}
+  roomIdField: {fileID: 0}
+  joinRoomBtn: {fileID: 0}
+  playBtn: {fileID: 0}
   infoText: {fileID: 0}
 --- !u!4 &490191666
 Transform:
@@ -409,7 +413,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!81 &868224083
 AudioListener:
   m_ObjectHideFlags: 0
@@ -742,7 +746,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!81 &1984507036
 AudioListener:
   m_ObjectHideFlags: 0

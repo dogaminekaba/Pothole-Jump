@@ -33,9 +33,6 @@ public class PlayerSelector : MonoBehaviour
 
 	void SetPlayer(int playerId)
     {
-		Debug.Log("old: " + selectedPlayerId);
-		Debug.Log("selected: " + playerId);
-
 		playerChars[selectedPlayerId].SetActive(false);
 		playerChars[playerId].SetActive(true);
 

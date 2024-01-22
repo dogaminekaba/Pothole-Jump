@@ -166,8 +166,7 @@ namespace GameNetwork
 							// create response
 							ConnectionResponse responseMsg = new ConnectionResponse()
 							{
-								playerId = clientId,
-								roomId = roomId
+								playerId = clientId
 							};
 
 							// Serialize the message and create a byte array

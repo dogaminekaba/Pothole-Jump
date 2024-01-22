@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using UnityEditor.VersionControl;
 
 namespace GameNetwork
 {
@@ -10,13 +9,15 @@ namespace GameNetwork
 		public int roomId;
 		public int roomOwnerId;
 		public int turnPlayerId;
+		public int roomSize;
 	}
 
 	[System.Serializable]
 	public class Player
 	{
 		public int id;
-		public string username;
+		public int modelId;
+		public string userName;
 		public int posX;
 		public int posY;
 		public int score;
@@ -25,15 +26,20 @@ namespace GameNetwork
 	[System.Serializable]
 	public class ConnectionRequest
 	{
-		public string username;
-		public bool createRoom;
-
+		public string userName;
 	}
 
 	[System.Serializable]
 	public class ConnectionResponse
 	{
 		public int playerId;
+		public int modelId;
+	}
+
+	[System.Serializable]
+	public class JoinRoomRequest
+	{
+		public bool createRoom;
 		public int roomId;
 		public int roomSize;
 	}

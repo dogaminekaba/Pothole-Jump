@@ -3,6 +3,7 @@ using System;
 using System.Net.Sockets;
 using System.Text;
 using UnityEditor.VersionControl;
+using UnityEngine.Networking.Types;
 
 namespace GameNetwork
 {
@@ -10,10 +11,12 @@ namespace GameNetwork
 	{
 		private int clientId = -1;
 		private int roomId = -1;
-		TcpClient? client;
-		GameDataBuilder gameDataBuilder = new GameDataBuilder(); 
+		private TcpClient? client;
+		private NetworkStream stream;
 
-		public int Connect(string host, int port)
+		GameDataBuilder dataBuilder = new GameDataBuilder(); 
+
+		public int Connect(string host, int port, string userName)
 		{
 			try
 			{
@@ -22,28 +25,20 @@ namespace GameNetwork
 				// Create connection request message
 				ConnectionRequest connectMsg = new ConnectionRequest
 				{
-					username = "test1",
-					createRoom = true
+					userName = userName
 				};
 
-				// Serialize the message and create a byte array
-				string msg = gameDataBuilder.serializeConnectionRequest(connectMsg);
+				// Serialize the message
+				string msg = dataBuilder.SerializeMsg(connectMsg);
 				Byte[] data = Encoding.ASCII.GetBytes(msg);
 
 				// Get a client stream for reading and writing.
-				NetworkStream stream = client.GetStream();
+				stream = client.GetStream();
 
 				// Send the message to the connected TcpServer.
 				stream.Write(data, 0, data.Length);
 
 				// Receive the server response.
-
-
-
-
-
-
-				// Buffer to store the response bytes.
 				data = new Byte[256];
 
 				// Read the first batch of the TcpServer response bytes.
@@ -52,15 +47,15 @@ namespace GameNetwork
 				Console.WriteLine("Client - Received: ", responseData);
 
 				// Deserialize received message
-				ConnectionResponse responseMsg = gameDataBuilder.deserializeConnectionResponse(responseData);
+				ConnectionResponse responseMsg = dataBuilder.DeserializeMsg<ConnectionResponse>(responseData);
 
 				if (responseMsg.playerId > -1)
 				{
 					clientId = responseMsg.playerId;
 				}
-				if (responseMsg.roomId > -1)
+				else
 				{
-					roomId = responseMsg.roomId;
+					throw new Exception("Server connection problem.");
 				}
 
 			}
@@ -76,6 +71,22 @@ namespace GameNetwork
 			}
 
 			return 0;
+		}
+
+		public GameState RequestCreateRoom(int roomSize)
+		{
+			JoinRoomRequest requestMsg = new JoinRoomRequest()
+			{
+				createRoom = true,
+				roomSize = roomSize,
+				roomId = 0
+			};
+			string msg = dataBuilder.SerializeMsg(requestMsg);
+
+			string response = SendMessage(msg);
+			GameState responseMsg = dataBuilder.DeserializeMsg<GameState>(response);
+
+			return responseMsg;
 		}
 
 
@@ -108,8 +119,6 @@ namespace GameNetwork
 				Console.WriteLine("Client - Sent: ", message);
 
 				// Receive the server response.
-
-				// Buffer to store the response bytes.
 				data = new Byte[256];
 
 				// Read the first batch of the TcpServer response bytes.

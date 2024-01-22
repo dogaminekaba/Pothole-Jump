@@ -26,7 +26,7 @@ namespace ServerApp
 			state.playerList.Add(new Player
 			{
 				id = playerId,
-				username = "Player " + playerId,
+				userName = "Player " + playerId,
 				posX = -playerId,
 				posY = -playerId,
 				score = 0

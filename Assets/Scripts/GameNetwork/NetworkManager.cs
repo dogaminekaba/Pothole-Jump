@@ -5,8 +5,14 @@ using TMPro;
 
 public class NetworkManager : MonoBehaviour
 {
-	public Button startServerBtn;
+	public TMP_InputField usernameField;
 	public Button connectBtn;
+	public Button prevBtn;
+	public Button nextBtn;
+	public Button createRoomBtn;
+	public TMP_InputField roomIdField;
+	public Button joinRoomBtn;
+	public Button playBtn;
 	public TextMeshProUGUI infoText;
 
 	private GameClient myClient;
@@ -20,26 +26,16 @@ public class NetworkManager : MonoBehaviour
 	void Start()
 	{
 		myClient = new GameClient();
+		usernameField.characterLimit = 10;
+		roomIdField.characterLimit = 3;
+
+		infoText.text = "Select your character before connecting!";
 	}
 
 	// Update is called once per frame
 	void Update()
 	{
 
-	}
-
-	public void CreateRoom()
-	{
-		//ConnectToGameServer();
-
-		// TODO - Show the room number
-	}
-
-	public void JoinRoom()
-	{
-		// TODO - Show the input UI to enter Room number
-
-		// ConnectToGameServer();
 	}
 
 	public void ConnectServer()
@@ -54,14 +50,28 @@ public class NetworkManager : MonoBehaviour
 		// TODO - Check if connected before
 
 		infoText.text = "Connecting the server...";
-		int result = myClient.Connect(serverIp, serverPort);
 
-        if (result == 0)
-        {
+		string userName = usernameField.text;
+
+		int result = myClient.Connect(serverIp, serverPort, userName);
+
+		if (result == 0)
+		{
 			clientId = myClient.GetClientId();
 			int roomId = myClient.GetRoomId();
 
-			infoText.text = clientId + " is connected. Waiting for friends in room: " + roomId;
+			infoText.text = userName + " is connected. id:" + clientId;
+
+			usernameField.gameObject.SetActive(false);
+			connectBtn.gameObject.SetActive(false);
+
+			prevBtn.gameObject.SetActive(false);
+			nextBtn.gameObject.SetActive(false);
+
+			// Room setup
+			createRoomBtn.gameObject.SetActive(true);
+			roomIdField.gameObject.SetActive(true);
+			joinRoomBtn.gameObject.SetActive(true);
 		}
 		else
 		{
@@ -69,6 +79,20 @@ public class NetworkManager : MonoBehaviour
 		}
 
 		return clientId;
+	}
+
+	public void CreateRoom()
+	{
+		GameState responseMsg = myClient.RequestCreateRoom(2);
+
+		infoText.text = "Room is created > " + responseMsg.roomId;
+
+		// TODO - Show the room number
+	}
+
+	public void JoinRoom()
+	{
+		// TODO - Show the input UI to enter Room number
 	}
 
 
