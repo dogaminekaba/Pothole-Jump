@@ -282,6 +282,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   usernameField: {fileID: 0}
   connectBtn: {fileID: 0}
+  prevBtn: {fileID: 0}
+  nextBtn: {fileID: 0}
   createRoomBtn: {fileID: 0}
   roomIdField: {fileID: 0}
   joinRoomBtn: {fileID: 0}
@@ -650,7 +652,7 @@ GameObject:
   - component: {fileID: 1689492571}
   - component: {fileID: 1689492570}
   m_Layer: 0
-  m_Name: Board
+  m_Name: BoardController
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -668,8 +670,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6a863012d67f4af46b187b5ec25fa61f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  box: {fileID: 2795944423721727231, guid: 62209eb44b93b864d82d7beea3b20b4a, type: 3}
-  startBox: {fileID: 2830494753663340430, guid: 80a763db2ab5c6f4b978018ea028e708, type: 3}
 --- !u!4 &1689492571
 Transform:
   m_ObjectHideFlags: 0
@@ -714,6 +714,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0991fec7df3c1604b8136dca9f91b165, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  boardMng: {fileID: 1689492570}
+  boxPrefab: {fileID: 2795944423721727231, guid: 62209eb44b93b864d82d7beea3b20b4a, type: 3}
+  startBoxPrefab: {fileID: 2830494753663340430, guid: 80a763db2ab5c6f4b978018ea028e708, type: 3}
 --- !u!4 &1947834875
 Transform:
   m_ObjectHideFlags: 0
@@ -754,7 +757,7 @@ AudioListener:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1984507035}
-  m_Enabled: 0
+  m_Enabled: 1
 --- !u!20 &1984507037
 Camera:
   m_ObjectHideFlags: 0
@@ -806,7 +809,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1984507035}
   m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 1, y: 10, z: 1}
+  m_LocalPosition: {x: 1, y: 10, z: 2}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

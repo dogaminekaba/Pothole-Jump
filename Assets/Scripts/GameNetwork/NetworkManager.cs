@@ -26,16 +26,28 @@ public class NetworkManager : MonoBehaviour
 	void Start()
 	{
 		myClient = new GameClient();
-		usernameField.characterLimit = 10;
-		roomIdField.characterLimit = 3;
 
-		infoText.text = "Select your character before connecting!";
+		if (usernameField != null && roomIdField != null)
+		{
+			usernameField.characterLimit = 10;
+			roomIdField.characterLimit = 3;
+		}
+
+		if (infoText != null)
+		{
+			infoText.text = "Select your character before connecting!";
+		}
 	}
 
 	// Update is called once per frame
 	void Update()
 	{
 
+	}
+
+	void Awake()
+	{
+		DontDestroyOnLoad(transform.gameObject);
 	}
 
 	public void ConnectServer()

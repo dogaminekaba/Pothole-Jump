@@ -6,6 +6,7 @@ using static Assets.Scripts.GameData;
 
 public class BoxController : MonoBehaviour
 {
+	bool isBoxSolid = false;
 	bool isEnabled = true;
 	bool mouseDrag = false;
 	Color highlightColor;
@@ -13,19 +14,12 @@ public class BoxController : MonoBehaviour
 	Color coverColor;
 	Color hiddenColor;
     Renderer boxRenderer;
+	int boxId = -1;
 
     // Start is called before the first frame update
     void Start()
     {
-		boxRenderer = GetComponent<Renderer>();
-		coverColor = boxRenderer.material.color;
-
-		if(ColorDict?.Keys != null)
-		{
-			highlightColor = ColorDict[Colors.LightGray];
-			selectColor = ColorDict[Colors.DarkGray];
-			hiddenColor = BoxColors.ElementAt(Random.Range(0, BoxColors.Count));
-		}
+		
 
 	}
 
@@ -34,6 +28,28 @@ public class BoxController : MonoBehaviour
     {
         
     }
+
+	public void InitBox(bool isSolid, int id)
+	{
+		isBoxSolid = isSolid;
+		boxId = id;
+
+		boxRenderer = gameObject.GetComponent<Renderer>();
+
+		if (ColorDict?.Keys != null)
+		{
+			coverColor = boxRenderer.material.color;
+			highlightColor = ColorDict[Colors.LightGray];
+			selectColor = ColorDict[Colors.DarkGray];
+
+			if (isSolid)
+				hiddenColor = ColorDict[Colors.White];
+			else
+				hiddenColor = BoxColors.ElementAt(Random.Range(0, BoxColors.Count));
+		}
+
+		
+	}
 
 	private void OnMouseEnter()
 	{
@@ -61,15 +77,21 @@ public class BoxController : MonoBehaviour
 
 	private void OnMouseDrag()
 	{
-		
+		mouseDrag = false;
 	}
 
 	private void OnMouseUp()
 	{
-		if (isEnabled)
+		if (isEnabled && !mouseDrag)
 		{
 			isEnabled = false;
 			boxRenderer.material.color = hiddenColor;
+
+			Debug.Log("id: " + boxId);
 		}
+		else
+		{
+			mouseDrag = false;
+		}	
 	}
 }

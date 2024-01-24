@@ -4,15 +4,12 @@ using UnityEngine;
 
 public class BoardController : MonoBehaviour
 {
-    public GameObject box;
-    public GameObject startBox;
     float boxSize = 0.95f;
 
     // Start is called before the first frame update
     void Start()
     {
-        InitializeBoard(GameManager.boardSize);
-
+        
 	}
 
     // Update is called once per frame
@@ -21,28 +18,39 @@ public class BoardController : MonoBehaviour
         
     }
 
-    void InitializeBoard(int boardSize)
+    public List <GameObject> InitializeBoard(int boardSize, List<int> solidBoxIds, GameObject startBoxPrefab, GameObject boxPrefab)
     {
-        float startBoxPosX = (boardSize - 1) / 2f;
+		List <GameObject> boxList = new List <GameObject>();
 
-		// create start platforms
-		startBox.transform.localScale = new Vector3(boardSize, boxSize, boxSize);
-		box.transform.localScale = new Vector3(boxSize, boxSize, boxSize);
+		float startBoxPosX = (boardSize - 1) / 2f;
+
+		// create starting platforms
+		startBoxPrefab.transform.localScale = new Vector3(boardSize, boxSize, boxSize);
+		boxPrefab.transform.localScale = new Vector3(boxSize, boxSize, boxSize);
 
 		Vector3 pos = new Vector3(startBoxPosX, boxSize / 2, -1);
-		Instantiate(startBox, pos, Quaternion.identity, gameObject.transform);
+		Instantiate(startBoxPrefab, pos, Quaternion.identity, gameObject.transform);
 
         pos = new Vector3(startBoxPosX, boxSize / 2, boardSize);
-		Instantiate(startBox,pos, Quaternion.identity, gameObject.transform);
+		Instantiate(startBoxPrefab, pos, Quaternion.identity, gameObject.transform);
 
 		// create game board
 		for (int i = 0; i < boardSize; i++)
         {
             for(int j = 0; j < boardSize; j++)
             {
-				pos = new Vector3(i, boxSize / 2, j);
-				Instantiate(box, pos, Quaternion.identity, gameObject.transform);
+                // find the id of current box to see if it's solid
+                int id = (( i ) * boardSize) + j + 1;
+                bool isSolid = solidBoxIds.Contains(id);
+
+				pos = new Vector3(j, boxSize / 2, i);
+
+                GameObject box = Instantiate(boxPrefab, pos, Quaternion.identity, gameObject.transform);
+                box.GetComponent<BoxController>().InitBox(isSolid, id);
+                boxList.Add(box);
             }
         }
+
+        return boxList;
     }
 }
