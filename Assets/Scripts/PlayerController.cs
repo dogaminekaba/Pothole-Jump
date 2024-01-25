@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
@@ -23,4 +21,9 @@ public class PlayerController : MonoBehaviour
     {
         
     }
+
+    public void MovePlayer(Vector3 pos)
+    {
+		transform.position = pos;
+	}
 }

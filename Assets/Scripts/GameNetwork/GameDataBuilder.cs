@@ -1,6 +1,4 @@
 ﻿using GameNetwork;
-using System.Collections.Generic;
-using UnityEditor.VersionControl;
 using UnityEngine;
 
 namespace ServerApp
@@ -13,7 +11,7 @@ namespace ServerApp
 			
 		}
 
-		public T? DeserializeMsg<T>(string jsonString)
+		public T DeserializeMsg<T>(string jsonString)
 		{
 			T deserializedData = JsonUtility.FromJson<T>(jsonString);
 			return deserializedData;

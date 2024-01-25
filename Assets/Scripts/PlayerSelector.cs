@@ -1,3 +1,4 @@
+using GameNetwork;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -5,7 +6,7 @@ using UnityEngine;
 public class PlayerSelector : MonoBehaviour
 {
 	public List<GameObject> playerChars = new List<GameObject>();
-	int selectedPlayerId = 0;
+	private static int selectedCharId = 0;
 
 	// Start is called before the first frame update
 	void Start()
@@ -21,21 +22,32 @@ public class PlayerSelector : MonoBehaviour
 
     public void SelectNext()
     {
-		int newId = (selectedPlayerId + 1) % 4;
+		int newId = (selectedCharId + 1) % 4;
 		SetPlayer(newId);
     }
 
 	public void SelectPrev()
 	{
-		int newId = selectedPlayerId < 1 ? 3 : selectedPlayerId - 1;
+		int newId = selectedCharId < 1 ? 3 : selectedCharId - 1;
 		SetPlayer(newId);
 	}
 
-	void SetPlayer(int playerId)
+	void SetPlayer(int charId)
     {
-		playerChars[selectedPlayerId].SetActive(false);
-		playerChars[playerId].SetActive(true);
+		playerChars[selectedCharId].SetActive(false);
+		playerChars[charId].SetActive(true);
 
-		selectedPlayerId = playerId;
+		selectedCharId = charId;
+	}
+
+	public static int getPlayerModelId()
+	{
+		return selectedCharId;
+	}
+
+	public GameObject InstantiateCharacter(int charId, Vector3 pos)
+	{
+		GameObject characterPref = playerChars[charId];
+		return Instantiate(characterPref, pos, Quaternion.identity);
 	}
 }

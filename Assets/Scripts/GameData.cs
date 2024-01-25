@@ -1,20 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace Assets.Scripts
 {
 	internal class GameData
 	{
-		public enum GameState
+		public enum GameManagerState
 		{
-			MainMenu,
-			MatchMaking,
-			Waiting,
-			YourTurn,
+			StartMenu,
+			WaitingOthers,
+			Ready,
+			Playing,
 			GameOver
 		}
 

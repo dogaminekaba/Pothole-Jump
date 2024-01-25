@@ -11,13 +11,33 @@ namespace ServerApp
 
 		}
 
-		public GameState CreateGameState(int roomId, int roomOwnerId)
+		public GameState CreateGameState(int roomId, int boardSize)
 		{
+			int startIndex = 0;
+			int endIndex = boardSize;
+			List<int> solidBoxIds = new List<int>();
+			Random random = new Random();
+
+			for (int i = 0; i < boardSize; i++)
+			{
+				int median = (startIndex + endIndex) / 2;
+
+				int solid1 = random.Next(startIndex, median) + 1;
+				int solid2 = random.Next(median, endIndex) + 1;
+
+				solidBoxIds.Add(solid1);
+				solidBoxIds.Add(solid2);
+
+				startIndex += boardSize;
+				endIndex += boardSize;
+			}
+
 			return new GameState()
 			{
 				playerList = new List<Player>(),
-				roomId = roomId,
-				roomOwnerId = roomOwnerId
+				solidBoxIds = solidBoxIds,
+				turnPlayerId = -10,
+				roomId = roomId
 			};
 		}
 

@@ -6,11 +6,11 @@ int serverPort = 13000;
 bool isRunning = true;
 
 GameServer gameServer = new GameServer();
-gameServer.Start(serverIp, serverPort);
+gameServer.StartServer(serverIp, serverPort);
 
 Console.CancelKeyPress += delegate (object? sender, ConsoleCancelEventArgs e)
 {
-	Console.WriteLine("Program is ended abruptly.");
+	Console.WriteLine("Program is ended.");
 	e.Cancel = true;
 	StopServer();
 };

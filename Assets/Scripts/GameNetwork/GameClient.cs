@@ -2,8 +2,9 @@
 using System;
 using System.Net.Sockets;
 using System.Text;
-using UnityEditor.VersionControl;
+using System.Threading;
 using UnityEngine.Networking.Types;
+using static UnityEditorInternal.VersionControl.ListControl;
 
 namespace GameNetwork
 {
@@ -12,83 +13,68 @@ namespace GameNetwork
 		private int clientId = -1;
 		private int roomId = -1;
 		private TcpClient? client;
-		private NetworkStream stream;
+		private bool disconnected = false;
+		private GameState lastState = null;
+		private Thread pollTh;
 
-		GameDataBuilder dataBuilder = new GameDataBuilder(); 
+		GameDataBuilder dataBuilder = new GameDataBuilder();
 
-		public int Connect(string host, int port, string userName)
+		public ConnectionResponse Connect(string host, int port, string userName, int modelId)
 		{
+			ConnectionResponse response = new ConnectionResponse()
+			{
+				success = false,
+				playerId = -1
+			};
+
 			try
 			{
 				client = new TcpClient(host, port);
 
-				// Create connection request message
+				// create connection request message
 				ConnectionRequest connectMsg = new ConnectionRequest
 				{
-					userName = userName
+					userName = userName,
+					modelId = modelId
 				};
 
-				// Serialize the message
+				// serialize the message
 				string msg = dataBuilder.SerializeMsg(connectMsg);
-				Byte[] data = Encoding.ASCII.GetBytes(msg);
 
-				// Get a client stream for reading and writing.
-				stream = client.GetStream();
+				// send the message and receive response
+				string responseMsg = SendMessage(msg);
 
-				// Send the message to the connected TcpServer.
-				stream.Write(data, 0, data.Length);
+				// deserialize received message
+				response = dataBuilder.DeserializeMsg<ConnectionResponse>(responseMsg);
 
-				// Receive the server response.
-				data = new Byte[256];
-
-				// Read the first batch of the TcpServer response bytes.
-				Int32 bytes = stream.Read(data, 0, data.Length);
-				string responseData = Encoding.ASCII.GetString(data, 0, bytes);
-				Console.WriteLine("Client - Received: ", responseData);
-
-				// Deserialize received message
-				ConnectionResponse responseMsg = dataBuilder.DeserializeMsg<ConnectionResponse>(responseData);
-
-				if (responseMsg.playerId > -1)
+				if(response.success)
 				{
-					clientId = responseMsg.playerId;
-				}
-				else
-				{
-					throw new Exception("Server connection problem.");
+					roomId = response.roomId;
+					clientId = response.playerId;
+					pollTh = new Thread(PollForMessages);
+					pollTh.Start();
 				}
 
-			}
-			catch (ArgumentNullException e)
-			{
-				Console.WriteLine("Client - ArgumentNullException: ", e);
-				return -1;
 			}
 			catch (SocketException e)
 			{
 				Console.WriteLine("Client - SocketException: ", e);
-				return -1;
+				Disconnect();
 			}
 
-			return 0;
+			return response;
 		}
 
-		public GameState RequestCreateRoom(int roomSize)
+		public void Disconnect()
 		{
-			JoinRoomRequest requestMsg = new JoinRoomRequest()
-			{
-				createRoom = true,
-				roomSize = roomSize,
-				roomId = 0
-			};
-			string msg = dataBuilder.SerializeMsg(requestMsg);
-
-			string response = SendMessage(msg);
-			GameState responseMsg = dataBuilder.DeserializeMsg<GameState>(response);
-
-			return responseMsg;
+			client.Close();
+			disconnected = true;
 		}
 
+		public bool isDisconnected()
+		{
+			return disconnected;
+		}
 
 		public int GetClientId()
 		{
@@ -100,42 +86,119 @@ namespace GameNetwork
 			return roomId;
 		}
 
-		public String SendMessage(String message)
+		public GameState GetLastGameState()
 		{
-			// String to store the response ASCII representation.
-			String responseData = String.Empty;
+			return lastState;
+		}
+
+		/// <summary>
+		/// Sends a message to server and waits for response
+		/// </summary>
+		/// <param name="message"></param>
+		/// <returns></returns>
+		private string SendMessage(string message)
+		{
+			NetworkStream stream = client.GetStream();
+			string responseMsg = "";
 
 			try
 			{
-				// Translate the passed message into ASCII and store it as a Byte array.
-				Byte[] data = System.Text.Encoding.ASCII.GetBytes(message);
+				// translate the passed message into ASCII and store it as a Byte array.
+				Byte[] data = Encoding.ASCII.GetBytes(message);
 
-				// Get a client stream for reading and writing.
-				NetworkStream stream = client.GetStream();
-
-				// Send the message to the connected TcpServer.
+				// send the message
 				stream.Write(data, 0, data.Length);
 
-				Console.WriteLine("Client - Sent: ", message);
-
-				// Receive the server response.
+				// read the response
 				data = new Byte[256];
-
-				// Read the first batch of the TcpServer response bytes.
 				Int32 bytes = stream.Read(data, 0, data.Length);
-				responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-				Console.WriteLine("Client - Received: ", responseData);
-			}
-			catch (ArgumentNullException e)
-			{
-				Console.WriteLine("Client - ArgumentNullException: ", e);
+				responseMsg = Encoding.ASCII.GetString(data, 0, bytes);
 			}
 			catch (SocketException e)
 			{
 				Console.WriteLine("Client - SocketException: ", e);
+				Disconnect();
 			}
 
-			return responseData;
+			return responseMsg;
+		}
+
+		/// <summary>
+		/// Sends a message to server and doesn't return a response (used for non-blocking poll)
+		/// </summary>
+		/// <param name="message"></param>
+		/// <returns></returns>
+		private void SendPollMessage(string message)
+		{
+			NetworkStream stream = client.GetStream();
+
+			try
+			{
+				// translate the passed message into ASCII and store it as a Byte array.
+				Byte[] data = Encoding.ASCII.GetBytes(message);
+
+				// send the message
+				stream.Write(data, 0, data.Length);
+			}
+			catch (Exception e)
+			{
+				Console.WriteLine("Client - Exception: ", e);
+				Disconnect();
+			}
+		}
+
+		private void PollForMessages()
+		{
+			NetworkStream stream = client.GetStream();
+			bool stateRequested = false;
+
+			GameStateRequest request = new GameStateRequest
+			{
+				roomId = roomId
+			};
+
+			try
+			{
+				while (!disconnected)
+				{
+					if (!stateRequested) // get next state
+					{
+						// create game state request message
+						string requestMsg = dataBuilder.SerializeMsg(request);
+						SendPollMessage(requestMsg);
+
+						stateRequested = true;
+					}
+
+					// get new messages from the server
+					if (stream.DataAvailable)
+					{
+						byte[] data = new Byte[256];
+						Int32 bytes = stream.Read(data, 0, data.Length);
+						string responseMsg = Encoding.ASCII.GetString(data, 0, bytes);
+
+						if (responseMsg.Contains("*serverdisconnected*"))
+						{
+							Disconnect();
+							return;
+						}
+						else if(responseMsg.Contains("GameState"))
+						{
+							// deserialize received message
+							GameState state = dataBuilder.DeserializeMsg<GameState>(responseMsg);
+							lastState = state;
+							stateRequested = false;
+						}
+					}
+
+					Thread.Sleep(100);
+				}
+			}
+			catch (Exception e)
+			{
+				Console.WriteLine("Client - SocketException: ", e);
+				Disconnect();
+			}
 		}
 	}
 }

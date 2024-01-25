@@ -1,18 +1,21 @@
+using System.Collections.Generic;
+
 namespace GameNetwork
 {
 	[System.Serializable]
 	public class GameState
 	{
+		public string type = "GameState";
 		public required List<Player> playerList;
+		public required List<int> solidBoxIds;
 		public int roomId;
-		public int roomOwnerId;
 		public int turnPlayerId;
-		public int roomSize;
 	}
 
 	[System.Serializable]
 	public class Player
 	{
+		public string type = "Player";
 		public int id;
 		public int modelId;
 		public string userName = "";
@@ -24,21 +27,32 @@ namespace GameNetwork
 	[System.Serializable]
 	public class ConnectionRequest
 	{
+		public string type = "ConnectionRequest";
 		public string userName = "";
+		public int modelId;
 	}
 
 	[System.Serializable]
 	public class ConnectionResponse
 	{
+		public string type = "ConnectionResponse";
+		public bool success;
 		public int playerId;
-		public int modelId;
+		public int roomId;
 	}
 
 	[System.Serializable]
-	public class JoinRoomRequest
+	public class MoveRequest
 	{
-		bool createRoom;
+		public string type = "MoveRequest";
+		public int playerId;
+		public int boxId;
+	}
+
+	[System.Serializable]
+	public class GameStateRequest
+	{
+		public string type = "GameStateRequest";
 		public int roomId;
-		public int roomSize;
 	}
 }

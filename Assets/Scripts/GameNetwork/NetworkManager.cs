@@ -1,111 +1,54 @@
-using UnityEngine;
-using UnityEngine.UI;
 using GameNetwork;
-using TMPro;
+using UnityEditor.PackageManager;
 
-public class NetworkManager : MonoBehaviour
+public class NetworkManager
 {
-	public TMP_InputField usernameField;
-	public Button connectBtn;
-	public Button prevBtn;
-	public Button nextBtn;
-	public Button createRoomBtn;
-	public TMP_InputField roomIdField;
-	public Button joinRoomBtn;
-	public Button playBtn;
-	public TextMeshProUGUI infoText;
-
 	private GameClient myClient;
-
-	private bool isMyTurn = false;
 
 	private string serverIp = "127.0.0.1";
 	private int serverPort = 13000;
 
-	// Start is called before the first frame update
-	void Start()
+	public ConnectionResponse ConnectToGameServer(string username, int modelId)
 	{
-		myClient = new GameClient();
+		if(myClient == null || myClient.isDisconnected())
+			myClient = new GameClient();
 
-		if (usernameField != null && roomIdField != null)
-		{
-			usernameField.characterLimit = 10;
-			roomIdField.characterLimit = 3;
-		}
-
-		if (infoText != null)
-		{
-			infoText.text = "Select your character before connecting!";
-		}
+		ConnectionResponse result = myClient.Connect(serverIp, serverPort, username, modelId);
+		return result;
 	}
 
-	// Update is called once per frame
-	void Update()
+	public void DisconnectClient()
 	{
-
+		if(myClient != null)
+			myClient.Disconnect();
 	}
 
-	void Awake()
+	public bool isDisconnected()
 	{
-		DontDestroyOnLoad(transform.gameObject);
-	}
-
-	public void ConnectServer()
-	{
-		ConnectToGameServer();
-	}
-
-	private int ConnectToGameServer()
-	{
-		int clientId = -1;
-
-		// TODO - Check if connected before
-
-		infoText.text = "Connecting the server...";
-
-		string userName = usernameField.text;
-
-		int result = myClient.Connect(serverIp, serverPort, userName);
-
-		if (result == 0)
-		{
-			clientId = myClient.GetClientId();
-			int roomId = myClient.GetRoomId();
-
-			infoText.text = userName + " is connected. id:" + clientId;
-
-			usernameField.gameObject.SetActive(false);
-			connectBtn.gameObject.SetActive(false);
-
-			prevBtn.gameObject.SetActive(false);
-			nextBtn.gameObject.SetActive(false);
-
-			// Room setup
-			createRoomBtn.gameObject.SetActive(true);
-			roomIdField.gameObject.SetActive(true);
-			joinRoomBtn.gameObject.SetActive(true);
-		}
+		if(myClient != null)
+			return myClient.isDisconnected();
 		else
-		{
-			infoText.text = "Cannot connect to server. Try Again.";
-		}
-
-		return clientId;
+			return false;
 	}
 
-	public void CreateRoom()
+	public int getClientId()
 	{
-		GameState responseMsg = myClient.RequestCreateRoom(2);
-
-		infoText.text = "Room is created > " + responseMsg.roomId;
-
-		// TODO - Show the room number
+		if (myClient != null)
+			return myClient.GetClientId();
+		else
+			return -1;
 	}
 
-	public void JoinRoom()
+	public GameState GetLastGameState()
 	{
-		// TODO - Show the input UI to enter Room number
+		if (myClient != null)
+			return myClient.GetLastGameState();
+		else return null;
 	}
 
+	public void SendMove(int boxId)
+	{
+		// TODO - Send next move and receive next state
+	}
 
 }
