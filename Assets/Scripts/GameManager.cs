@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using GameNetwork;
 using static Assets.Scripts.GameData;
+using System.ComponentModel;
 
 public class GameManager : MonoBehaviour
 {
@@ -32,9 +33,10 @@ public class GameManager : MonoBehaviour
 	private int clientId = -1;
 
 	// Characters
-	public GameObject player;
+	public GameObject playerChar;
 	private PlayerSelector playerSelector;
 	private int modelId = 0;
+	private bool opponentCreated = false;
 
 	private List<int> solidBoxIds = new List<int>();
 	private static GameObject currentBox;
@@ -63,7 +65,7 @@ public class GameManager : MonoBehaviour
 			infoText.text = "Select your character before connecting!";
 		}
 
-		playerSelector = player.GetComponent<PlayerSelector>();
+		playerSelector = playerChar.GetComponent<PlayerSelector>();
 	}
 
 	// Update is called once per frame
@@ -86,23 +88,34 @@ public class GameManager : MonoBehaviour
 		{
 			gameState = networkMng.GetLastGameState();
 			if (gameState != null)
-				mngState = GameManagerState.Ready;
+			{
+				if(gameState.playerList.Count > 1)
+					mngState = GameManagerState.PlayerJoined;
+			}
 		}
 
-		if(mngState == GameManagerState.Ready)
+		if(mngState == GameManagerState.PlayerJoined)
 		{
-			List<Player> playerList = gameState.playerList;
-			foreach (Player player in playerList)
+
+			foreach (var player in gameState.playerList)
 			{
-				if(player.id != clientId)
+				if(player.id !=  clientId)
 				{
 					// show other character
 					int opponentModelId = player.modelId;
-					Vector3 pos = new Vector3(5f, 0.7f, -3f);
-					opponentChar = playerSelector.InstantiateCharacter(opponentModelId, pos);
+					Vector3 pos = new Vector3(-4f, 0f, 5f);
+					opponentChar = playerSelector.InstantiateCharacter(opponentModelId, pos, playerChar.transform.rotation);
+					opponentChar.gameObject.SetActive(true);
 				}
 			}
 
+			mngState = GameManagerState.Ready;
+		}
+
+		if (mngState == GameManagerState.Ready)
+		{
+			if(!playBtn.gameObject.activeSelf)
+				playBtn.gameObject.SetActive(true);
 		}
 	}
 

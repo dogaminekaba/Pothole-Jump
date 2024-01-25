@@ -672,8 +672,8 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 310673072}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -10.086261, y: -4.13344, z: 11.941868}
+  m_LocalRotation: {x: 0, y: 0.9396927, z: 0, w: 0.34202018}
+  m_LocalPosition: {x: -5, y: 0.71111447, z: 3}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1112,7 +1112,7 @@ MonoBehaviour:
   boardMng: {fileID: 1768016349}
   boxPrefab: {fileID: 2795944423721727231, guid: 62209eb44b93b864d82d7beea3b20b4a, type: 3}
   startBoxPrefab: {fileID: 2830494753663340430, guid: 80a763db2ab5c6f4b978018ea028e708, type: 3}
-  player: {fileID: 310673072}
+  playerChar: {fileID: 310673072}
 --- !u!4 &473510839
 Transform:
   m_ObjectHideFlags: 0

@@ -45,9 +45,9 @@ public class PlayerSelector : MonoBehaviour
 		return selectedCharId;
 	}
 
-	public GameObject InstantiateCharacter(int charId, Vector3 pos)
+	public GameObject InstantiateCharacter(int charId, Vector3 pos, Quaternion rotation)
 	{
 		GameObject characterPref = playerChars[charId];
-		return Instantiate(characterPref, pos, Quaternion.identity);
+		return Instantiate(characterPref, pos, rotation);
 	}
 }

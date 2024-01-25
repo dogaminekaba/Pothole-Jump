@@ -3,8 +3,6 @@ using System;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using UnityEngine.Networking.Types;
-using static UnityEditorInternal.VersionControl.ListControl;
 
 namespace GameNetwork
 {
@@ -39,13 +37,13 @@ namespace GameNetwork
 				};
 
 				// serialize the message
-				string msg = dataBuilder.SerializeMsg(connectMsg);
+				string msg = connectMsg.Serialize();
 
 				// send the message and receive response
 				string responseMsg = SendMessage(msg);
 
 				// deserialize received message
-				response = dataBuilder.DeserializeMsg<ConnectionResponse>(responseMsg);
+				response = dataBuilder.DeserializeConnectionResponse(responseMsg);
 
 				if(response.success)
 				{
@@ -67,7 +65,7 @@ namespace GameNetwork
 
 		public void Disconnect()
 		{
-			client.Close();
+			client.Dispose();
 			disconnected = true;
 		}
 
@@ -123,53 +121,14 @@ namespace GameNetwork
 			return responseMsg;
 		}
 
-		/// <summary>
-		/// Sends a message to server and doesn't return a response (used for non-blocking poll)
-		/// </summary>
-		/// <param name="message"></param>
-		/// <returns></returns>
-		private void SendPollMessage(string message)
-		{
-			NetworkStream stream = client.GetStream();
-
-			try
-			{
-				// translate the passed message into ASCII and store it as a Byte array.
-				Byte[] data = Encoding.ASCII.GetBytes(message);
-
-				// send the message
-				stream.Write(data, 0, data.Length);
-			}
-			catch (Exception e)
-			{
-				Console.WriteLine("Client - Exception: ", e);
-				Disconnect();
-			}
-		}
-
 		private void PollForMessages()
 		{
 			NetworkStream stream = client.GetStream();
-			bool stateRequested = false;
-
-			GameStateRequest request = new GameStateRequest
-			{
-				roomId = roomId
-			};
 
 			try
 			{
 				while (!disconnected)
 				{
-					if (!stateRequested) // get next state
-					{
-						// create game state request message
-						string requestMsg = dataBuilder.SerializeMsg(request);
-						SendPollMessage(requestMsg);
-
-						stateRequested = true;
-					}
-
 					// get new messages from the server
 					if (stream.DataAvailable)
 					{
@@ -182,12 +141,11 @@ namespace GameNetwork
 							Disconnect();
 							return;
 						}
-						else if(responseMsg.Contains("GameState"))
+						else if(responseMsg.Contains("GameStateMessage"))
 						{
 							// deserialize received message
-							GameState state = dataBuilder.DeserializeMsg<GameState>(responseMsg);
+							GameState state = dataBuilder.DeserializeGameState(responseMsg);
 							lastState = state;
-							stateRequested = false;
 						}
 					}
 

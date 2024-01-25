@@ -13,6 +13,3 @@ D:\Documents\GitHub\Pothole-Jump\ServerApp\ServerApp\obj\Debug\net8.0\refint\Ser
 D:\Documents\GitHub\Pothole-Jump\ServerApp\ServerApp\obj\Debug\net8.0\ServerApp.pdb
 D:\Documents\GitHub\Pothole-Jump\ServerApp\ServerApp\obj\Debug\net8.0\ServerApp.genruntimeconfig.cache
 D:\Documents\GitHub\Pothole-Jump\ServerApp\ServerApp\obj\Debug\net8.0\ref\ServerApp.dll
-D:\Documents\GitHub\Pothole-Jump\ServerApp\ServerApp\obj\Debug\net8.0\ServerApp.csproj.AssemblyReference.cache
-D:\Documents\GitHub\Pothole-Jump\ServerApp\ServerApp\obj\Debug\net8.0\ServerApp.csproj.CopyComplete
-D:\Documents\GitHub\Pothole-Jump\ServerApp\ServerApp\bin\Debug\net8.0\Newtonsoft.Json.dll

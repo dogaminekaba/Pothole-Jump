@@ -9,6 +9,7 @@ namespace Assets.Scripts
 		{
 			StartMenu,
 			WaitingOthers,
+			PlayerJoined,
 			Ready,
 			Playing,
 			GameOver

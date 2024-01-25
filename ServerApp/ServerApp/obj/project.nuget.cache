@@ -1,10 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "jPkTcV90IR8VdbJOL+bCv9AoXdY2vZthq994u8spBPRJOM1pah918vK6FBXJqwMMmTvRLZQEeU9lFQ3etFOA4A==",
+  "dgSpecHash": "Mw7qnoJdamp4MQj9Te3s8TCu4kIEZJ4J1NUHgDva6CCWMvVgMgHRCU2jsMfSZug5tE+0XRYZ7nYzUVyZVf1OWg==",
   "success": true,
   "projectFilePath": "D:\\Documents\\GitHub\\Pothole-Jump\\ServerApp\\ServerApp\\ServerApp.csproj",
-  "expectedPackageFiles": [
-    "C:\\Users\\Doga\\.nuget\\packages\\newtonsoft.json\\13.0.3\\newtonsoft.json.13.0.3.nupkg.sha512"
-  ],
+  "expectedPackageFiles": [],
   "logs": []
 }

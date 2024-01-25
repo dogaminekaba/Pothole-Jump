@@ -1,10 +1,7 @@
 ﻿using System.Net.Sockets;
 using System.Net;
 using ServerApp;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 using System.Text;
-using System.IO;
-using System.Net.Mail;
 using System.Diagnostics;
 
 
@@ -23,10 +20,10 @@ namespace GameNetwork
 		private Stack<int> availablePlayerIds = null;
 		private Stack<int> availableRoomIds = null;
 		private HashSet<int> waitingRoomIds = null;
-		private List<TcpClient> connectedClients = null;
 
 		// keep a record of the last states and clients in the rooms for broadcasting
-		private Dictionary<int, GameState> roomGameStates = new Dictionary<int, GameState>();
+		private Dictionary<int, List<TcpClient>> connectedClients = null;
+		private Dictionary<int, GameState> roomGameStates = null;
 
 		public GameServer()
 		{
@@ -73,8 +70,9 @@ namespace GameNetwork
 				availablePlayerIds.Push(i);
 			}
 
-			connectedClients = new List<TcpClient>();
+			connectedClients = new Dictionary<int, List<TcpClient>>();
 			clientThreads = new List<Thread>();
+			roomGameStates = new Dictionary<int, GameState>();
 		}
 
 		public void StopServer()
@@ -83,20 +81,29 @@ namespace GameNetwork
 
 			try
 			{
-				if (server != null)
-				{
-					foreach (TcpClient client in connectedClients)
-					{
-						SendMessage(client.GetStream(), "*serverdisconnected*");
-						client.Close();
-					}
-					server.Stop();
-				}
+				//if (server != null)
+				//{
+				//	lock (connectedClients)
+				//	{
+				//		foreach (KeyValuePair<int, List<TcpClient>> entry in connectedClients)
+				//		{
+				//			foreach(TcpClient client in entry.Value)
+				//			{
+				//				NetworkStream stream = client.GetStream();
+				//				SendMessage(stream, "*serverdisconnected*");
+				//				stream.Flush();
+				//				stream.Close();
+				//				client.Close();
+				//			}
+				//		}
+				//	}
+				//}
 			}
 			catch (Exception e)
 			{
 				Console.WriteLine("Server - Exception: " + e);
 			}
+			server.Stop();
 		}
 
 		private void listenForConnections()
@@ -114,12 +121,7 @@ namespace GameNetwork
 					{
 						TcpClient client = server.AcceptTcpClient();
 
-						lock(connectedClients)
-						{
-							connectedClients.Add(client);
-						}
-
-						Thread clientTh = new Thread(() => listenClient(client));
+						Thread clientTh = new Thread(() => ListenClient(client));
 
 						lock (clientThreads)
 						{
@@ -149,7 +151,7 @@ namespace GameNetwork
 			}
 		}
 
-		private void listenClient(TcpClient client)
+		private void ListenClient(TcpClient client)
 		{
 			GameDataBuilder builder = new GameDataBuilder();
 			bool isListening = true;
@@ -180,38 +182,51 @@ namespace GameNetwork
 						string requestData = Encoding.ASCII.GetString(data, 0, bytes);
 
 						// Connection
-						if (requestData.Contains("ConnectionRequest"))
+						if (requestData.Contains("ConnectionRequestMessage"))
 						{
-							ConnectionRequest? ConReqMsg = builder.DeserializeMsg<ConnectionRequest>(requestData);
+							ConnectionRequest? ConReqMsg = builder.DeserializeConnectionRequest(requestData);
 							ConnectionResponse response;
 
 							if (ConReqMsg != null)
 							{
 								response = HandleConnectionRequest(ConReqMsg, builder);
-								string responseMsg = builder.SerializeMsg(response);
+								string responseMsg = response.Serialize();
 								SendMessage(stream, responseMsg);
 
 								clientId = response.playerId;
 								roomId = response.roomId;
 								isListening = response.success;
-							}
-						}
 
-						// GameState
-						if (requestData.Contains("GameStateRequest"))
-						{
-							GameStateRequest? stateReqMsg = builder.DeserializeMsg<GameStateRequest>(requestData);
-							GameState state;
-
-							if (stateReqMsg != null)
-							{
-								lock (roomGameStates)
+								// update
+								if(isListening)
 								{
-									state = roomGameStates[stateReqMsg.roomId];
-								}
+									List<TcpClient> players;
+									lock (connectedClients)
+									{
+										if(connectedClients.TryGetValue(roomId, out players))
+										{
+											players.Add(client);
+										}
+										else
+										{
+											players = [client];
+											connectedClients.Add(roomId, players);
+										}
+									}
 
-								string responseMsg = builder.SerializeMsg(state);
-								SendMessage(stream, responseMsg);
+									GameState lastState;
+									lock(roomGameStates)
+									{
+										lastState = roomGameStates[roomId];
+									}
+
+									string broadcastMsg = lastState.Serialize();
+									// broadcast
+									foreach (TcpClient player in players)
+									{
+										SendMessage(player.GetStream(), broadcastMsg);
+									}
+								}
 							}
 						}
 
@@ -222,7 +237,7 @@ namespace GameNetwork
 					}
 					else
 					{
-						if (sw.ElapsedMilliseconds > 1000) throw new TimeoutException();
+						//if (sw.ElapsedMilliseconds > 2000) throw new TimeoutException();
 					}
 				}
 			}
@@ -235,27 +250,24 @@ namespace GameNetwork
 			Console.WriteLine("Client " + clientId + " disconnected.");
 
 			// release resources
-			
 			if(clientDisonnected) {
-				lock (availablePlayerIds)
-				{
-					availablePlayerIds.Push(clientId);
-				}
-
 				int roomPlayerCount = 0;
 
 				lock (roomGameStates)
 				{
-					roomGameStates[roomId].playerList.RemoveAll(p => p.id == clientId);
-					roomPlayerCount = roomGameStates[roomId].playerList.Count;
-
-					if (roomPlayerCount < 1)
+					if (roomId > -1)
 					{
-						roomGameStates.Remove(roomId);
+						roomGameStates[roomId].playerList.RemoveAll(p => p.id == clientId);
+						roomPlayerCount = roomGameStates[roomId].playerList.Count;
+
+						if (roomPlayerCount == 0)
+						{
+							roomGameStates.Remove(roomId);
+						}
 					}
 				}
 
-				if (roomPlayerCount < 1)
+				if (roomPlayerCount == 0)
 				{
 					lock(waitingRoomIds)
 					{
@@ -265,6 +277,11 @@ namespace GameNetwork
 					{
 						availableRoomIds.Push(roomId);
 					}
+				}
+
+				lock (availablePlayerIds)
+				{
+					availablePlayerIds.Push(clientId);
 				}
 			}
 			
@@ -302,6 +319,11 @@ namespace GameNetwork
 			lock (waitingRoomIds)
 			{
 				createRoom = waitingRoomIds.Count == 0;
+				if (!createRoom)
+				{
+					roomId = waitingRoomIds.First();
+					waitingRoomIds.Remove(roomId);
+				}
 			}
 
 			// create a new room
@@ -316,17 +338,7 @@ namespace GameNetwork
 				{
 					GameState state = builder.CreateGameState(roomId, 6);
 
-					Player player = new Player()
-					{
-						id = playerId,
-						modelId = modelId,
-						userName = username,
-						posX = 0,
-						posY = 0,
-						score = 0
-					};
-
-					state.playerList.Add(player);
+					state = builder.AddPlayer(state, playerId, modelId, username);
 
 					lock (roomGameStates)
 					{
@@ -350,19 +362,10 @@ namespace GameNetwork
 			// join a waiting room
 			else
 			{
-				Player player = new Player()
-				{
-					id = playerId,
-					modelId = modelId,
-					userName = username,
-					posX = 0,
-					posY = 0,
-					score = 0
-				};
-
 				lock (roomGameStates)
 				{
-					roomGameStates[roomId].playerList.Add(player);
+					GameState state = roomGameStates[roomId];
+					roomGameStates[roomId] = builder.AddPlayer(state, playerId, modelId, username);
 				}
 			}
 
@@ -388,8 +391,9 @@ namespace GameNetwork
 				// create a byte array
 				byte[] data = Encoding.ASCII.GetBytes(message);
 
-				// Send back a response.
+				// Send message
 				stream.Write(data, 0, data.Length);
+				stream.Flush();
 				Console.WriteLine("Server - Sent: " + message);
 			}
 			catch (ArgumentNullException e)
