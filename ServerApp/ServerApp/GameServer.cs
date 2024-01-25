@@ -81,23 +81,23 @@ namespace GameNetwork
 
 			try
 			{
-				//if (server != null)
-				//{
-				//	lock (connectedClients)
-				//	{
-				//		foreach (KeyValuePair<int, List<TcpClient>> entry in connectedClients)
-				//		{
-				//			foreach(TcpClient client in entry.Value)
-				//			{
-				//				NetworkStream stream = client.GetStream();
-				//				SendMessage(stream, "*serverdisconnected*");
-				//				stream.Flush();
-				//				stream.Close();
-				//				client.Close();
-				//			}
-				//		}
-				//	}
-				//}
+				if (server != null)
+				{
+					lock (connectedClients)
+					{
+						foreach (KeyValuePair<int, List<TcpClient>> entry in connectedClients)
+						{
+							foreach (TcpClient client in entry.Value)
+							{
+								NetworkStream stream = client.GetStream();
+								SendMessage(stream, "*serverdisconnected*");
+								stream.Flush();
+								stream.Close();
+								client.Close();
+							}
+						}
+					}
+				}
 			}
 			catch (Exception e)
 			{
