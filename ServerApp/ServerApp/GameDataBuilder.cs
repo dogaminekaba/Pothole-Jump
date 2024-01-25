@@ -4,7 +4,6 @@ namespace ServerApp
 {
 	internal class GameDataBuilder
 	{
-		public static object serializerLock = new object();
 		public GameDataBuilder()
 		{
 
@@ -50,6 +49,9 @@ namespace ServerApp
 				currentBoxId = -playerId,
 				score = 0
 			});
+
+			if(state.playerList.Count == 1)
+				state.turnPlayerId = playerId;
 
 			return state;
 		}
@@ -128,7 +130,8 @@ namespace ServerApp
 			{
 				type = parts[0],
 				playerId = int.Parse(parts[1]),
-				boxId = int.Parse(parts[2])
+				boxId = int.Parse(parts[2]),
+				boxColor = int.Parse(parts[3])
 			};
 
 			return moveRequest;

@@ -159,9 +159,6 @@ namespace GameNetwork
 			int roomId = -1;
 			bool clientDisonnected = false;
 
-			Stopwatch sw = new Stopwatch();
-			sw.Start();
-
 			try
 			{
 				// buffer for reading data
@@ -169,6 +166,7 @@ namespace GameNetwork
 
 				// get a stream object for reading and writing
 				NetworkStream stream = client.GetStream();
+				List<TcpClient> players = new List<TcpClient>();
 
 				int bytes = 0;
 
@@ -200,7 +198,6 @@ namespace GameNetwork
 								// update
 								if(isListening)
 								{
-									List<TcpClient> players;
 									lock (connectedClients)
 									{
 										if(connectedClients.TryGetValue(roomId, out players))
@@ -220,8 +217,8 @@ namespace GameNetwork
 										lastState = roomGameStates[roomId];
 									}
 
-									string broadcastMsg = lastState.Serialize();
 									// broadcast
+									string broadcastMsg = lastState.Serialize();
 									foreach (TcpClient player in players)
 									{
 										SendMessage(player.GetStream(), broadcastMsg);
@@ -231,13 +228,18 @@ namespace GameNetwork
 						}
 
 						// Move
+						if (requestData.Contains("MoveRequestMessage"))
+						{
+							MoveRequest? MoveReqMsg = builder.DeserializeMoveRequest(requestData);
+							GameState lastState  = HandleMoveRequest(MoveReqMsg, builder, roomId);
 
-						// reset timer for disconnection detection
-						sw.Restart();
-					}
-					else
-					{
-						//if (sw.ElapsedMilliseconds > 2000) throw new TimeoutException();
+							// broadcast
+							string broadcastMsg = lastState.Serialize();
+							foreach (TcpClient player in players)
+							{
+								SendMessage(player.GetStream(), broadcastMsg);
+							}
+						}
 					}
 				}
 			}
@@ -285,6 +287,35 @@ namespace GameNetwork
 				}
 			}
 			
+		}
+
+		private GameState HandleMoveRequest(MoveRequest moveReqMsg, GameDataBuilder builder, int roomId)
+		{
+			GameState state;
+
+			lock (roomGameStates)
+			{
+				state = roomGameStates[roomId];
+			}
+
+			foreach(Player player in state.playerList)
+			{
+				if (player.id == moveReqMsg.playerId)
+				{
+					player.currentBoxId = moveReqMsg.boxId;
+
+					if (moveReqMsg.boxColor == 0) // solid box
+					{
+						player.score += 10;
+					}
+				}
+				else
+				{
+					state.turnPlayerId = player.id;
+				}
+			}
+
+			return state;
 		}
 
 		private ConnectionResponse HandleConnectionRequest(ConnectionRequest requestMsg, GameDataBuilder builder)

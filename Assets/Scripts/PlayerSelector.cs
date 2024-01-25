@@ -19,8 +19,12 @@ public class PlayerSelector : MonoBehaviour
     {
         
     }
+	void Awake()
+	{
+		DontDestroyOnLoad(transform.gameObject);
+	}
 
-    public void SelectNext()
+	public void SelectNext()
     {
 		int newId = (selectedCharId + 1) % 4;
 		SetPlayer(newId);

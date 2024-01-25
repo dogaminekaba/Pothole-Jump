@@ -1,17 +1,11 @@
 ﻿using GameNetwork;
+using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 
 namespace ServerApp
 {
 	internal class GameDataBuilder
 	{
-		public GameState lastState;
-
-		public GameDataBuilder() {
-			
-		}
-
 		// Custom deserialization for GameState
 		public GameState DeserializeGameState(string data)
 		{
@@ -85,7 +79,8 @@ namespace ServerApp
 			{
 				type = parts[0],
 				playerId = int.Parse(parts[1]),
-				boxId = int.Parse(parts[2])
+				boxId = int.Parse(parts[2]),
+				boxColor = int.Parse(parts[3])
 			};
 
 			return moveRequest;

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+
 namespace GameNetwork
 {
 	[System.Serializable]
@@ -36,7 +37,6 @@ namespace GameNetwork
 		{
 			return $"{type},{id},{modelId},{userName},{currentBoxId},{score}";
 		}
-
 	}
 
 	[System.Serializable]
@@ -51,7 +51,6 @@ namespace GameNetwork
 		{
 			return $"{type},{userName},{modelId}";
 		}
-
 	}
 
 	[System.Serializable]
@@ -75,11 +74,12 @@ namespace GameNetwork
 		public string type = "MoveRequestMessage";
 		public int playerId;
 		public int boxId;
+		public int boxColor;
 
 		// Custom serialization for MoveRequest
 		public string Serialize()
 		{
-			return $"{type},{playerId},{boxId}";
+			return $"{type},{playerId},{boxId},{boxColor}";
 		}
 	}
 }

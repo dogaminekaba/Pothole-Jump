@@ -45,9 +45,10 @@ public class NetworkManager
 		else return null;
 	}
 
-	public void SendMove(int boxId)
+	public void SendMove(int boxId, int boxColor)
 	{
-		// TODO - Send next move and receive next state
+		if (myClient != null)
+			myClient.SendMove(boxId, boxColor);
 	}
 
 }

@@ -5,7 +5,7 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using GameNetwork;
 using static Assets.Scripts.GameData;
-using System.ComponentModel;
+using Unity.VisualScripting;
 
 public class GameManager : MonoBehaviour
 {
@@ -18,14 +18,27 @@ public class GameManager : MonoBehaviour
 	public TMP_InputField roomIdField;
 	public Button joinRoomBtn;
 	public Button playBtn;
+	public TextMeshProUGUI titleText;
 	public TextMeshProUGUI infoText;
+	public TextMeshProUGUI infoTextTop;
+	public TextMeshProUGUI Player1Info;
+	public TextMeshProUGUI Player2Info;
 
 	// Game elements
 	GameManagerState mngState;
 	public BoardController boardMng;
-	public static readonly int boardSize = 5;
+	public static readonly int boardSize = 6;
 	public GameObject boxPrefab;
 	public GameObject startBoxPrefab;
+	public static bool canPlay = false;
+	public static bool playedTurn = false;
+
+	private List<int> solidBoxIds = new List<int>();
+	private Dictionary<int, GameObject> boxDict;
+	private static int currentBoxId;
+	private static int currentBoxColor;
+	private int lastPlayerBoxId;
+	private int lastOpponentBoxId;
 
 	// Network
 	private NetworkManager networkMng;
@@ -34,16 +47,14 @@ public class GameManager : MonoBehaviour
 
 	// Characters
 	public GameObject playerChar;
+	private GameObject opponentChar;
 	private PlayerSelector playerSelector;
 	private int modelId = 0;
 	private bool opponentCreated = false;
+	private Player playerInfo;
+	private Player opponentInfo;
 
-	private List<int> solidBoxIds = new List<int>();
-	private static GameObject currentBox;
-	private static int currentBoxId;
-	private GameObject opponentChar;
-
-	int score = 0;
+	private int solidBoxesFound = 0;
 
 	// Start is called before the first frame update
 	void Start()
@@ -83,24 +94,31 @@ public class GameManager : MonoBehaviour
 			infoText.text = "Something went wrong :( Please try again!";
 			mngState = GameManagerState.StartMenu;
 		}
-		
-		if(mngState == GameManagerState.WaitingOthers)
+
+		if (mngState == GameManagerState.WaitingOthers)
 		{
 			gameState = networkMng.GetLastGameState();
 			if (gameState != null)
 			{
-				if(gameState.playerList.Count > 1)
+				solidBoxIds = gameState.solidBoxIds;
+
+				if (gameState.playerList.Count > 1)
 					mngState = GameManagerState.PlayerJoined;
 			}
 		}
 
-		if(mngState == GameManagerState.PlayerJoined)
+		if (mngState == GameManagerState.PlayerJoined)
 		{
-
 			foreach (var player in gameState.playerList)
 			{
-				if(player.id !=  clientId)
+				if(player.id == clientId)
 				{
+					playerInfo = player;
+				}
+				else
+				{
+					opponentInfo = player;
+					lastOpponentBoxId = opponentInfo.currentBoxId;
 					// show other character
 					int opponentModelId = player.modelId;
 					Vector3 pos = new Vector3(-4f, 0f, 5f);
@@ -114,8 +132,63 @@ public class GameManager : MonoBehaviour
 
 		if (mngState == GameManagerState.Ready)
 		{
-			if(!playBtn.gameObject.activeSelf)
+			infoText.text = opponentInfo.userName + " is joined! Click \"play!\" to start the game!";
+
+			if (!playBtn.gameObject.activeSelf)
 				playBtn.gameObject.SetActive(true);
+		}
+
+		if (mngState == GameManagerState.Playing)
+		{
+			// is it my turn
+			gameState = networkMng.GetLastGameState();
+			
+			if (gameState != null)
+			{
+				canPlay = gameState.turnPlayerId == clientId;
+
+				foreach (var player in gameState.playerList)
+				{
+					if (player.id == clientId)
+					{
+						playerInfo = player;
+
+					}
+					else
+					{
+						opponentInfo = player;
+					}
+				}
+
+				if(opponentInfo.currentBoxId != lastOpponentBoxId)
+				{
+					lastOpponentBoxId = opponentInfo.currentBoxId;
+					if (lastOpponentBoxId > 0)
+					{
+						boxDict[lastOpponentBoxId].GetComponent<BoxController>().RevealColor();
+						if (solidBoxIds.Contains(lastOpponentBoxId))
+							++solidBoxesFound;
+
+					}
+				}
+
+				if (playerInfo.currentBoxId != lastPlayerBoxId)
+				{
+					lastPlayerBoxId = playerInfo.currentBoxId;
+					if (lastPlayerBoxId > 0 && solidBoxIds.Contains(lastPlayerBoxId))
+					{
+						++solidBoxesFound;
+					}
+				}
+			}
+
+			if(playedTurn)
+			{
+				networkMng.SendMove(currentBoxId, currentBoxColor);
+				playedTurn = false;
+			}
+
+			updateUiElements();
 		}
 	}
 
@@ -126,42 +199,75 @@ public class GameManager : MonoBehaviour
 
 	private void OnDestroy()
 	{
-		networkMng.DisconnectClient();
+		networkMng?.DisconnectClient();
 	}
 
 	public void StartGame()
 	{
 		SceneManager.LoadScene("Gameplay");
 
-		InitSolidBoxList();
+		boxDict = boardMng.InitializeBoard(boardSize, solidBoxIds, startBoxPrefab, boxPrefab);
+
+		// create player
+		Vector3 pos = boardMng.startBox1.transform.position + new Vector3(0, boardMng.boxSize, 0);
+		playerChar.transform.position = pos;
+
+		pos = boardMng.startBox2.transform.position + new Vector3(0, boardMng.boxSize, 0);
+		opponentChar = playerSelector.InstantiateCharacter(2, pos, playerChar.transform.rotation);
+		opponentChar.transform.Rotate(Vector3.up, 180);
+		opponentChar.gameObject.SetActive(true);
+
+		infoText.gameObject.SetActive(false);
+		titleText.gameObject.SetActive(false);
+		playBtn.gameObject.SetActive(false);
+
+		infoTextTop.gameObject.SetActive(true);
+		Player1Info.gameObject.SetActive(true);
+		Player2Info.gameObject.SetActive(true);
+
+		mngState = GameManagerState.Playing;
 	}
 
-	private void InitSolidBoxList()
+	public void updateUiElements()
 	{
-		int startIndex = 0;
-		int endIndex = boardSize;
+		Player1Info.text = playerInfo.userName + ": " + playerInfo.score;
+		Player2Info.text = opponentInfo.userName + ": " + opponentInfo.score;
 
-		for (int i = 0; i < boardSize; i++)
+		// game over
+		if (solidBoxesFound == solidBoxIds.Count)
 		{
-			int median = (startIndex + endIndex) / 2;
+			if(playerInfo.score == opponentInfo.score)
+			{
+				infoTextTop.text = "Wow... It's... A tie... ";
+			}
+			else
+			{
+				string winnerName = playerInfo.score > opponentInfo.score ? playerInfo.userName : opponentInfo.userName;
+				infoTextTop.text = "All solid boxes are found! " + winnerName + " WON!";
+			}
 
-			int solid1 = Random.Range(startIndex, median) + 1;
-			int solid2 = Random.Range(median, endIndex) + 1;
-
-			solidBoxIds.Add(solid1);
-			solidBoxIds.Add(solid2);
-
-			startIndex += boardSize;
-			endIndex += boardSize;
+			canPlay = false;
+			mngState = GameManagerState.GameOver;
 		}
-
-		boardMng.InitializeBoard(boardSize, solidBoxIds, startBoxPrefab, boxPrefab);
+		else
+		{
+			if (canPlay)
+			{
+				infoTextTop.text = "It's " + playerInfo.userName + "'s turn.";
+			}
+			else
+			{
+				infoTextTop.text = "It's " + opponentInfo.userName + "'s turn.";
+			}
+		}
 	}
 
-	public static void UpdateCurrentBox(int boxId, GameObject box, bool isSolid)
+	public static void UpdateCurrentBox(int boxId, int boxColor)
 	{
 		currentBoxId = boxId;
-		currentBox = box;
+		currentBoxColor = boxColor;
+
+		playedTurn = true;
 	}
 
 	// Network Related Methods
@@ -170,7 +276,7 @@ public class GameManager : MonoBehaviour
 	{
 		if (infoText != null)
 		{
-			infoText.text = "Connecting the server...";
+			infoText.text = "Connecting to server...";
 		}
 
 		string username = usernameField?.text;
@@ -182,7 +288,7 @@ public class GameManager : MonoBehaviour
 		{
 			clientId = response.playerId;
 
-			infoText.text = username + " is connected. id:" + clientId + ". Waiting for player 2 to join...";
+			infoText.text = username + " is connected." + ". Waiting for player 2 to join...";
 
 			usernameField.gameObject.SetActive(false);
 			connectBtn.gameObject.SetActive(false);

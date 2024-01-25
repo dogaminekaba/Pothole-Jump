@@ -3,6 +3,7 @@ using System;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using UnityEngine.Networking.Types;
 
 namespace GameNetwork
 {
@@ -89,6 +90,23 @@ namespace GameNetwork
 			return lastState;
 		}
 
+		public void SendMove(int boxId, int boxColor)
+		{
+			// create move request message
+			MoveRequest moveMsg = new MoveRequest
+			{
+				playerId = clientId,
+				boxId = boxId,
+				boxColor = boxColor
+			};
+
+			// serialize the message
+			string msg = moveMsg.Serialize();
+
+			// send the message
+			SendMessageAsync(msg);
+		}
+
 		/// <summary>
 		/// Sends a message to server and waits for response
 		/// </summary>
@@ -119,6 +137,24 @@ namespace GameNetwork
 			}
 
 			return responseMsg;
+		}
+
+		private void SendMessageAsync(string message)
+		{
+			NetworkStream stream = client.GetStream();
+			try
+			{
+				// translate the passed message into ASCII and store it as a Byte array.
+				Byte[] data = Encoding.ASCII.GetBytes(message);
+
+				// send the message
+				stream.Write(data, 0, data.Length);
+			}
+			catch (SocketException e)
+			{
+				Console.WriteLine("Client - SocketException: ", e);
+				Disconnect();
+			}
 		}
 
 		private void PollForMessages()

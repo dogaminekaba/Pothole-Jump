@@ -71,11 +71,12 @@ namespace GameNetwork
 		public string type = "MoveRequestMessage";
 		public int playerId;
 		public int boxId;
+		public int boxColor;
 
 		// Custom serialization for MoveRequest
 		public string Serialize()
 		{
-			return $"{type},{playerId},{boxId}";
+			return $"{type},{playerId},{boxId},{boxColor}";
 		}
 	}
 }
