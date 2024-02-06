@@ -39,6 +39,7 @@ public class GameManager : MonoBehaviour
 	private static int currentBoxColor;
 	private int lastPlayerBoxId;
 	private int lastOpponentBoxId;
+	private int solidBoxesFound = 0;
 
 	// Network
 	private NetworkManager networkMng;
@@ -54,13 +55,9 @@ public class GameManager : MonoBehaviour
 	private Player playerInfo;
 	private Player opponentInfo;
 
-	private int solidBoxesFound = 0;
-
 	// Start is called before the first frame update
 	void Start()
 	{
-		mngState = GameManagerState.StartMenu;
-
 		// setup Network Manager
 		networkMng = new NetworkManager();
 
@@ -77,6 +74,9 @@ public class GameManager : MonoBehaviour
 		}
 
 		playerSelector = playerChar.GetComponent<PlayerSelector>();
+
+		SceneManager.LoadScene("CharacterSelection");
+		mngState = GameManagerState.StartMenu;
 	}
 
 	// Update is called once per frame
@@ -86,12 +86,10 @@ public class GameManager : MonoBehaviour
 		{
 			clientId = -1;
 
-			usernameField.gameObject.SetActive(true);
-			connectBtn.gameObject.SetActive(true);
-			prevBtn.gameObject.SetActive(true);
-			nextBtn.gameObject.SetActive(true);
+			infoText.text = "Server Disconnected :( Please try again!";
 
-			infoText.text = "Something went wrong :( Please try again!";
+			SetUpStartMenuUi();
+			SceneManager.LoadScene("CharacterSelection");
 			mngState = GameManagerState.StartMenu;
 		}
 
@@ -188,18 +186,31 @@ public class GameManager : MonoBehaviour
 				playedTurn = false;
 			}
 
-			updateUiElements();
+			UpdateUiElements();
 		}
 	}
 
-	void Awake()
+	public void SetUpStartMenuUi()
 	{
-		DontDestroyOnLoad(transform.gameObject);
-	}
+		if (boxDict != null)
+		{
+			foreach (KeyValuePair<int, GameObject> boxObj in boxDict)
+			{
+				Destroy(boxObj.Value);
+			}
+			boxDict.Clear();
+		}
 
-	private void OnDestroy()
-	{
-		networkMng?.DisconnectClient();
+		infoTextTop.gameObject.SetActive(false);
+		Player1Info.gameObject.SetActive(false);
+		Player2Info.gameObject.SetActive(false);
+
+		titleText.gameObject.SetActive(true);
+		infoText.gameObject.SetActive(true);
+		usernameField.gameObject.SetActive(true);
+		connectBtn.gameObject.SetActive(true);
+		prevBtn.gameObject.SetActive(true);
+		nextBtn.gameObject.SetActive(true);
 	}
 
 	public void StartGame()
@@ -217,18 +228,16 @@ public class GameManager : MonoBehaviour
 		opponentChar.transform.Rotate(Vector3.up, 180);
 		opponentChar.gameObject.SetActive(true);
 
-		infoText.gameObject.SetActive(false);
 		titleText.gameObject.SetActive(false);
 		playBtn.gameObject.SetActive(false);
 
-		infoTextTop.gameObject.SetActive(true);
 		Player1Info.gameObject.SetActive(true);
 		Player2Info.gameObject.SetActive(true);
 
 		mngState = GameManagerState.Playing;
 	}
 
-	public void updateUiElements()
+	public void UpdateUiElements()
 	{
 		Player1Info.text = playerInfo.userName + ": " + playerInfo.score;
 		Player2Info.text = opponentInfo.userName + ": " + opponentInfo.score;
@@ -236,15 +245,19 @@ public class GameManager : MonoBehaviour
 		// game over
 		if (solidBoxesFound == solidBoxIds.Count)
 		{
-			if(playerInfo.score == opponentInfo.score)
+			if (playerInfo.score == opponentInfo.score)
 			{
+				
 				infoTextTop.text = "Wow... It's... A tie... ";
 			}
 			else
 			{
 				string winnerName = playerInfo.score > opponentInfo.score ? playerInfo.userName : opponentInfo.userName;
-				infoTextTop.text = "All solid boxes are found! " + winnerName + " WON!";
+				infoTextTop.text = winnerName + " WON!";
+				
 			}
+
+			infoText.text = "All solid boxes are found!";
 
 			canPlay = false;
 			mngState = GameManagerState.GameOver;
@@ -259,6 +272,7 @@ public class GameManager : MonoBehaviour
 			{
 				infoTextTop.text = "It's " + opponentInfo.userName + "'s turn.";
 			}
+			infoText.text = solidBoxesFound + "/" + solidBoxIds.Count + " solid boxes are found!";
 		}
 	}
 
@@ -309,12 +323,14 @@ public class GameManager : MonoBehaviour
 		}
 	}
 
-	public void SendMove()
+	void Awake()
 	{
-		// TODO - Show the input UI to enter Room number
+		DontDestroyOnLoad(transform.gameObject);
 	}
 
-
-
+	private void OnDestroy()
+	{
+		networkMng?.DisconnectClient();
+	}
 
 }

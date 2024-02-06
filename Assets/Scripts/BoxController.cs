@@ -19,7 +19,6 @@ public class BoxController : MonoBehaviour
     void Start()
     {
 		
-
 	}
 
     // Update is called once per frame
@@ -33,18 +32,16 @@ public class BoxController : MonoBehaviour
 		isBoxSolid = isSolid;
 		boxId = id;
 
-		boxRenderer = gameObject.GetComponent<Renderer>();
-
 		if (ColorDict?.Keys != null)
 		{
+			boxRenderer = gameObject.GetComponent<Renderer>();
 			coverColor = boxRenderer.material.color;
-			highlightColor = ColorDict[Colors.LightGray];
-			selectColor = ColorDict[Colors.DarkGray];
+			highlightColor = ColorDict[Colors.DarkGray];
+			selectColor = ColorDict[Colors.DarkestGray];
 
 			if (isSolid)
 			{
 				hiddenColorIndex = 0;
-				hiddenColor = ColorDict[Colors.DarkestGray];
 			}
 			else
 			{
@@ -53,6 +50,8 @@ public class BoxController : MonoBehaviour
 			}
 
 			hiddenColor = BoxColors[hiddenColorIndex];
+
+			boxRenderer.material.color = coverColor;
 		}
 	}
 

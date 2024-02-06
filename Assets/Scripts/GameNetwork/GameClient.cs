@@ -66,7 +66,10 @@ namespace GameNetwork
 
 		public void Disconnect()
 		{
-			client.Dispose();
+			if (client != null)
+			{
+				client.Dispose();
+			}
 			disconnected = true;
 		}
 

@@ -39,8 +39,8 @@ namespace Assets.Scripts
 			{ Colors.Yellow, new Color32(250, 231, 85, 255) },
 			{ Colors.White, new Color32(255, 255, 255, 255) },
 			{ Colors.LightGray, new Color32(230, 230, 230, 255) },
-			{ Colors.DarkGray, new Color32(200, 200, 200, 255) },
-			{ Colors.DarkestGray, new Color32(150, 150, 150, 255) }
+			{ Colors.DarkGray, new Color32(100, 100, 100, 255) },
+			{ Colors.DarkestGray, new Color32(50, 50, 50, 255) }
 		};
 
 		public static List<Color> BoxColors { get; } = new List<Color>()
