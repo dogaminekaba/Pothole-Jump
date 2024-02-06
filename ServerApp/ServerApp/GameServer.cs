@@ -3,6 +3,9 @@ using System.Net;
 using ServerApp;
 using System.Text;
 using System.Diagnostics;
+using System.Numerics;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.IO;
 
 
 namespace GameNetwork
@@ -24,6 +27,8 @@ namespace GameNetwork
 		// keep a record of the last states and clients in the rooms for broadcasting
 		private Dictionary<int, List<TcpClient>> connectedClients = null;
 		private Dictionary<int, GameState> roomGameStates = null;
+
+		private int boardSize = 6;
 
 		public GameServer()
 		{
@@ -90,7 +95,7 @@ namespace GameNetwork
 							foreach (TcpClient client in entry.Value)
 							{
 								NetworkStream stream = client.GetStream();
-								SendMessage(stream, "*serverdisconnected*");
+								SendMessage(stream, "ServerDisconnected");
 								stream.Flush();
 								stream.Close();
 								client.Close();
@@ -103,20 +108,19 @@ namespace GameNetwork
 			{
 				Console.WriteLine("Server - Exception: " + e);
 			}
-			server.Stop();
+			server?.Stop();
 		}
 
 		private void listenForConnections()
 		{
 			Console.WriteLine("Server - listenForConnections ");
+			Console.WriteLine("Server - Waiting for a connection...");
 
 			while (!stopListening)
 			{
 				// Accept connection requests if we have enough space
 				if (availablePlayerIds.Count > 0)
 				{
-					Console.WriteLine("Server - Waiting for a connection...");
-
 					try
 					{
 						TcpClient client = server.AcceptTcpClient();
@@ -129,8 +133,6 @@ namespace GameNetwork
 						}
 
 						clientTh.Start();
-
-						Console.WriteLine("Server - Connected!");
 					}
 					catch (SocketException e)
 					{
@@ -158,27 +160,25 @@ namespace GameNetwork
 			int clientId = -1;
 			int roomId = -1;
 			bool clientDisonnected = false;
+			string userName = "";
 
 			try
 			{
-				// buffer for reading data
-				Byte[] data = new Byte[256];
-
+				
 				// get a stream object for reading and writing
 				NetworkStream stream = client.GetStream();
 				List<TcpClient> players = new List<TcpClient>();
 
-				int bytes = 0;
+				// timer to track client connection
+				Stopwatch sw = new Stopwatch();
+				sw.Start();
 
 				// receive all the data sent by the client.
 				while (isListening)
 				{
 					if (stream.DataAvailable)
 					{
-						data = new Byte[256];
-						bytes = stream.Read(data, 0, data.Length);
-						string requestData = Encoding.ASCII.GetString(data, 0, bytes);
-
+						string requestData = ReadReceivedData(stream);
 						// Connection
 						if (requestData.Contains("ConnectionRequestMessage"))
 						{
@@ -211,35 +211,37 @@ namespace GameNetwork
 										}
 									}
 
-									GameState lastState;
-									lock(roomGameStates)
-									{
-										lastState = roomGameStates[roomId];
-									}
-
-									// broadcast
-									string broadcastMsg = lastState.Serialize();
-									foreach (TcpClient player in players)
-									{
-										SendMessage(player.GetStream(), broadcastMsg);
-									}
+									userName = ConReqMsg.userName;
+									Console.WriteLine("Client " + clientId + ": " + userName + " is connected.");
 								}
 							}
 						}
 
 						// Move
-						if (requestData.Contains("MoveRequestMessage"))
+						else if (requestData.Contains("MoveRequestMessage"))
 						{
 							MoveRequest? MoveReqMsg = builder.DeserializeMoveRequest(requestData);
 							GameState lastState  = HandleMoveRequest(MoveReqMsg, builder, roomId);
-
-							// broadcast
-							string broadcastMsg = lastState.Serialize();
-							foreach (TcpClient player in players)
-							{
-								SendMessage(player.GetStream(), broadcastMsg);
-							}
 						}
+
+						// ClientPulse
+						else if (requestData.Contains("ClientPulse"))
+						{
+							GameState lastState;
+							lock (roomGameStates)
+							{
+								lastState = roomGameStates[roomId];
+							}
+							string responseMsg = lastState.Serialize();
+							SendMessage(stream, responseMsg);
+						}
+
+						// reset timer for disconnection detection
+						sw.Restart();
+					}
+					else
+					{
+						if (sw.ElapsedMilliseconds > 500) throw new TimeoutException();
 					}
 				}
 			}
@@ -249,23 +251,55 @@ namespace GameNetwork
 				clientDisonnected = true;
 			}
 
-			Console.WriteLine("Client " + clientId + " disconnected.");
+			Console.WriteLine("Client " + clientId + ": " + userName + " is disconnected.");
 
-			// release resources
-			if(clientDisonnected) {
+
+			if (clientDisonnected) {
 				int roomPlayerCount = 0;
 
+				// disconnect other clients as well
+				List<TcpClient> players;
+				lock (connectedClients)
+				{
+					if (connectedClients.TryGetValue(roomId, out players))
+					{
+						players.Add(client);
+					}
+					else
+					{
+						players = [client];
+						connectedClients.Add(roomId, players);
+					}
+				}
+
+				// broadcast
+				string broadcastMsg = "ServerDisconnected";
+				foreach (TcpClient player in players)
+				{
+					if (player.Connected)
+					{
+						NetworkStream playerStream = player.GetStream();
+
+						if(playerStream != null && playerStream.CanWrite)
+						{
+							SendMessage(playerStream, broadcastMsg);
+							playerStream.Close();
+						}
+
+						player?.Close();
+					}
+				}
+
+				// release resources
 				lock (roomGameStates)
 				{
-					if (roomId > -1)
+					if (roomId > -1 && roomGameStates.ContainsKey(roomId))
 					{
 						roomGameStates[roomId].playerList.RemoveAll(p => p.id == clientId);
 						roomPlayerCount = roomGameStates[roomId].playerList.Count;
 
-						if (roomPlayerCount == 0)
-						{
-							roomGameStates.Remove(roomId);
-						}
+						// remove the room game state
+						roomGameStates.Remove(roomId);
 					}
 				}
 
@@ -286,7 +320,22 @@ namespace GameNetwork
 					availablePlayerIds.Push(clientId);
 				}
 			}
-			
+		}
+
+		private string ReadReceivedData(NetworkStream stream)
+		{
+			string requestData = "";
+
+			// buffer for reading data
+			Byte[] data = new Byte[256];
+			int bytes = stream.Read(data, 0, data.Length);
+
+			if (bytes > 0)
+			{
+				requestData = Encoding.ASCII.GetString(data, 0, bytes);
+			}
+
+			return requestData;
 		}
 
 		private GameState HandleMoveRequest(MoveRequest moveReqMsg, GameDataBuilder builder, int roomId)
@@ -367,7 +416,7 @@ namespace GameNetwork
 
 				if (createRoomSuccessful)
 				{
-					GameState state = builder.CreateGameState(roomId, 6);
+					GameState state = builder.CreateGameState(roomId, boardSize);
 
 					state = builder.AddPlayer(state, playerId, modelId, username);
 
@@ -425,7 +474,6 @@ namespace GameNetwork
 				// Send message
 				stream.Write(data, 0, data.Length);
 				stream.Flush();
-				Console.WriteLine("Server - Sent: " + message);
 			}
 			catch (ArgumentNullException e)
 			{

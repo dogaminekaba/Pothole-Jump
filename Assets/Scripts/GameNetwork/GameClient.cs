@@ -41,7 +41,7 @@ namespace GameNetwork
 				string msg = connectMsg.Serialize();
 
 				// send the message and receive response
-				string responseMsg = SendMessage(msg);
+				string responseMsg = SendMessageWaitResponse(msg);
 
 				// deserialize received message
 				response = dataBuilder.DeserializeConnectionResponse(responseMsg);
@@ -107,7 +107,7 @@ namespace GameNetwork
 			string msg = moveMsg.Serialize();
 
 			// send the message
-			SendMessageAsync(msg);
+			SendMessage(msg);
 		}
 
 		/// <summary>
@@ -115,7 +115,7 @@ namespace GameNetwork
 		/// </summary>
 		/// <param name="message"></param>
 		/// <returns></returns>
-		private string SendMessage(string message)
+		private string SendMessageWaitResponse(string message)
 		{
 			NetworkStream stream = client.GetStream();
 			string responseMsg = "";
@@ -142,7 +142,7 @@ namespace GameNetwork
 			return responseMsg;
 		}
 
-		private void SendMessageAsync(string message)
+		private void SendMessage(string message)
 		{
 			NetworkStream stream = client.GetStream();
 			try
@@ -162,33 +162,25 @@ namespace GameNetwork
 
 		private void PollForMessages()
 		{
-			NetworkStream stream = client.GetStream();
-
 			try
 			{
 				while (!disconnected)
 				{
-					// get new messages from the server
-					if (stream.DataAvailable)
-					{
-						byte[] data = new Byte[256];
-						Int32 bytes = stream.Read(data, 0, data.Length);
-						string responseMsg = Encoding.ASCII.GetString(data, 0, bytes);
+					string responseMsg = SendMessageWaitResponse("ClientPulse");
 
-						if (responseMsg.Contains("*serverdisconnected*"))
-						{
-							Disconnect();
-							return;
-						}
-						else if(responseMsg.Contains("GameStateMessage"))
-						{
-							// deserialize received message
-							GameState state = dataBuilder.DeserializeGameState(responseMsg);
-							lastState = state;
-						}
+					if (responseMsg.Contains("ServerDisconnected"))
+					{
+						Disconnect();
+						return;
+					}
+					else if(responseMsg.Contains("GameStateMessage"))
+					{
+						// deserialize received message
+						GameState state = dataBuilder.DeserializeGameState(responseMsg);
+						lastState = state;
 					}
 
-					Thread.Sleep(100);
+					Thread.Sleep(200);
 				}
 			}
 			catch (Exception e)

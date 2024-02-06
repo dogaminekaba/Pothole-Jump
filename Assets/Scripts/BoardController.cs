@@ -5,6 +5,8 @@ public class BoardController : MonoBehaviour
 {
     public GameObject startBox1;
     public GameObject startBox2;
+	public Dictionary<int, GameObject> boxDict;
+
     public float boxSize = 0.95f;
 
 	// Start is called before the first frame update
@@ -24,9 +26,9 @@ public class BoardController : MonoBehaviour
 		DontDestroyOnLoad(transform.gameObject);
 	}
 
-	public Dictionary <int, GameObject> InitializeBoard(int boardSize, List<int> solidBoxIds, GameObject startBoxPrefab, GameObject boxPrefab)
+	public void InitializeBoard(int boardSize, List<int> solidBoxIds, GameObject startBoxPrefab, GameObject boxPrefab)
     {
-		Dictionary<int, GameObject> boxDict = new Dictionary<int, GameObject>();
+		boxDict = new Dictionary<int, GameObject>();
 
 		float startBoxPosX = (boardSize - 1) / 2f;
 
@@ -57,7 +59,19 @@ public class BoardController : MonoBehaviour
 				boxDict.Add(id, box);
             }
         }
-
-        return boxDict;
     }
+
+    public void ClearBoard()
+    {
+		Destroy(startBox1);
+		Destroy(startBox2);
+		if (boxDict != null)
+		{
+			foreach (KeyValuePair<int, GameObject> boxObj in boxDict)
+			{
+				Destroy(boxObj.Value);
+			}
+			boxDict.Clear();
+		}
+	}
 }

@@ -5,7 +5,7 @@ using System.Linq;
 namespace ServerApp
 {
 	internal class GameDataBuilder
-	{
+	{	
 		// Custom deserialization for GameState
 		public GameState DeserializeGameState(string data)
 		{

@@ -34,7 +34,6 @@ public class GameManager : MonoBehaviour
 	public static bool playedTurn = false;
 
 	private List<int> solidBoxIds = new List<int>();
-	private Dictionary<int, GameObject> boxDict;
 	private static int currentBoxId;
 	private static int currentBoxColor;
 	private int lastPlayerBoxId;
@@ -163,7 +162,7 @@ public class GameManager : MonoBehaviour
 					lastOpponentBoxId = opponentInfo.currentBoxId;
 					if (lastOpponentBoxId > 0)
 					{
-						boxDict[lastOpponentBoxId].GetComponent<BoxController>().RevealColor();
+						boardMng.boxDict[lastOpponentBoxId].GetComponent<BoxController>().RevealColor();
 						if (solidBoxIds.Contains(lastOpponentBoxId))
 							++solidBoxesFound;
 
@@ -192,16 +191,9 @@ public class GameManager : MonoBehaviour
 
 	public void SetUpStartMenuUi()
 	{
-		if (boxDict != null)
-		{
-			foreach (KeyValuePair<int, GameObject> boxObj in boxDict)
-			{
-				Destroy(boxObj.Value);
-			}
-			boxDict.Clear();
-		}
+		boardMng.ClearBoard();
 
-		infoTextTop.gameObject.SetActive(false);
+		infoTextTop.text = "";
 		Player1Info.gameObject.SetActive(false);
 		Player2Info.gameObject.SetActive(false);
 
@@ -217,7 +209,7 @@ public class GameManager : MonoBehaviour
 	{
 		SceneManager.LoadScene("Gameplay");
 
-		boxDict = boardMng.InitializeBoard(boardSize, solidBoxIds, startBoxPrefab, boxPrefab);
+		boardMng.InitializeBoard(boardSize, solidBoxIds, startBoxPrefab, boxPrefab);
 
 		// create player
 		Vector3 pos = boardMng.startBox1.transform.position + new Vector3(0, boardMng.boxSize, 0);
@@ -311,11 +303,6 @@ public class GameManager : MonoBehaviour
 			nextBtn.gameObject.SetActive(false);
 
 			mngState = GameManagerState.WaitingOthers;
-
-			//// Room setup
-			//createRoomBtn.gameObject.SetActive(true);
-			//roomIdField.gameObject.SetActive(true);
-			//joinRoomBtn.gameObject.SetActive(true);
 		}
 		else
 		{
